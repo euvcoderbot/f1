@@ -4,208 +4,589 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>F1 Telemetry Analysis</title>
-    <link rel="stylesheet" href="styles.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #121216;
+            --bg-secondary: #1a1a24;
+            --panel-bg: #1f1f2e;
+            --text-primary: #e0e0e6;
+            --text-secondary: #9494a8;
+            --border-color: #2d2d3d;
+            --accent-color: #dc0000;
+            
+            /* Team Colors */
+            --mercedes: #00d4be;
+            --redbull: #0600ef;
+            --ferrari: #dc0000;
+            --mclaren: #ff8700;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* HEADER & TOP CONTROLS */
+        .header {
+            background-color: var(--bg-secondary);
+            border-bottom: 2px solid var(--border-color);
+            padding: 8px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 50px;
+        }
+
+        .logo-text {
+            font-size: 20px;
+            font-weight: 900;
+            color: var(--accent-color);
+            letter-spacing: 1px;
+        }
+
+        .controls-bar {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            font-weight: bold;
+        }
+
+        .control-group select {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        /* Fixed to show at least 8 items when clicked/focused naturally */
+        .scrollable-dropdown {
+            max-height: 200px;
+        }
+
+        /* SINGLE PAGE DASHBOARD CONTAINER */
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 1.8fr 1.2fr;
+            gap: 10px;
+            padding: 10px;
+            height: calc(100vh - 50px);
+            overflow: hidden;
+        }
+
+        /* GRAPH PANEL SCALING (Fits exactly on one screen) */
+        .main-charts-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            height: 100%;
+        }
+
+        .graph-container {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px;
+            position: relative;
+        }
+
+        /* 1st Graph takes up 2/3 space */
+        .primary-graph {
+            flex: 2;
+            min-height: 0;
+        }
+
+        /* Sub graphs below take up half that size combined */
+        .sub-graphs-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            min-height: 0;
+        }
+
+        .secondary-graph {
+            min-height: 0;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* RIGHT DATA SIDE PANEL */
+        .sidebar-data-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            height: 100%;
+            overflow-y: auto;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+        }
+
+        .section-header {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            border-left: 3px solid var(--accent-color);
+            padding-left: 6px;
+        }
+
+        /* DRIVER SELECTION GRID */
+        .driver-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .driver-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .driver-card:hover { transform: scale(1.03); }
+        .driver-card.selected { border-color: var(--accent-color); background: #2d1212; }
+        .driver-number { font-size: 16px; font-weight: 900; color: var(--accent-color); }
+        .driver-name { font-size: 11px; font-weight: bold; }
+
+        /* HORIZONTAL LAP MATRIX GRID (10 Columns Wide) */
+        .stint-filter-bar {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .stint-btn {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 3px 8px;
+            font-size: 11px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .stint-btn.active {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        .lap-rectangles-matrix {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 4px;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .lap-clickable-box {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            padding: 6px 2px;
+            text-align: center;
+            font-size: 9px;
+            cursor: pointer;
+            color: var(--text-primary);
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            line-height: 1.2;
+        }
+
+        .lap-clickable-box.active {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        .lap-clickable-box .l-num { font-weight: bold; color: var(--text-secondary); }
+        .lap-clickable-box.active .l-num { color: #fff; }
+        .lap-clickable-box .l-time { font-size: 8px; }
+
+        /* STATS TABLE */
+        .table-container {
+            margin-top: 10px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 8px;
+        }
+
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            text-align: left;
+        }
+
+        .stats-table th { color: var(--text-secondary); padding: 4px; border-bottom: 1px solid var(--border-color); }
+        .stats-table td { padding: 4px; border-bottom: 1px solid var(--border-color); }
+    </style>
 </head>
 <body>
-    <!-- HEADER -->
+
     <header class="header">
-        <div class="header-left">
-            <div class="logo">
-                <span class="logo-text">F1</span>
-                <span class="logo-sub">TELEMETRY</span>
+        <div class="logo"><span class="logo-text">F1</span></div>
+        
+        <div class="controls-bar">
+            <div class="control-group">
+                <label for="year-select">Year</label>
+                <select id="year-select">
+                    <option value="2024">2024</option>
+                </select>
             </div>
-        </div>
+            
+            <div class="control-group">
+                <label for="race-select">Race</label>
+                <select id="race-select" class="scrollable-dropdown">
+                    </select>
+            </div>
 
-        <div class="header-center">
-            <nav class="breadcrumb">
-                <span class="breadcrumb-item">2024</span>
-                <span class="breadcrumb-sep">/</span>
-                <span class="breadcrumb-item" id="breadcrumb-race">--</span>
-                <span class="breadcrumb-sep">/</span>
-                <span class="breadcrumb-item" id="breadcrumb-session">--</span>
-            </nav>
-        </div>
-
-        <div class="header-right">
-            <div class="toggle-group">
-                <!-- Theme Toggle -->
-                <button class="toggle-btn" id="theme-toggle" title="Toggle light/dark mode">
-                    <span class="toggle-icon">☀️</span>
-                </button>
-
-                <!-- Design Toggle -->
-                <button class="toggle-btn" id="design-toggle" title="Toggle flat/glass design">
-                    <span class="toggle-label">FLAT</span>
-                </button>
-
-                <!-- Mobile Menu Toggle -->
-                <button class="toggle-btn hamburger" id="hamburger-menu" title="Toggle sidebar">
-                    <span class="hamburger-line"></span>
-                    <span class="hamburger-line"></span>
-                    <span class="hamburger-line"></span>
-                </button>
+            <div class="control-group">
+                <label for="session-select">Session</label>
+                <select id="session-select">
+                    <option value="Race">Race</option>
+                    <option value="Qualifying">Qualifying</option>
+                </select>
             </div>
         </div>
     </header>
 
-    <div class="container">
-        <!-- SIDEBAR -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-content">
-                <!-- Dropdowns Section -->
-                <div class="dropdowns-section">
-                    <div class="dropdown-group">
-                        <label for="year-select">Year</label>
-                        <select id="year-select" class="dropdown">
-                            <option value="2024">2024</option>
-                            <option value="2025">2025</option>
-                        </select>
-                    </div>
-
-                    <div class="dropdown-group">
-                        <label for="race-select">Race</label>
-                        <div class="race-list" id="race-list">
-                            <!-- Populated by JS -->
-                        </div>
-                    </div>
-
-                    <div class="dropdown-group">
-                        <label for="session-select">Session</label>
-                        <select id="session-select" class="dropdown">
-                            <option value="FP1">FP1</option>
-                            <option value="FP2">FP2</option>
-                            <option value="FP3">FP3</option>
-                            <option value="Qualifying">Qualifying</option>
-                            <option value="Race" selected>Race</option>
-                        </select>
-                    </div>
+    <div class="dashboard-layout">
+        <div class="main-charts-panel">
+            <div class="graph-container primary-graph">
+                <canvas id="speed-graph"></canvas>
+            </div>
+            <div class="sub-graphs-grid">
+                <div class="graph-container secondary-graph">
+                    <canvas id="throttle-graph"></canvas>
                 </div>
-
-                <!-- Divider -->
-                <div class="sidebar-divider"></div>
-
-                <!-- Sessions Section -->
-                <div class="sidebar-section">
-                    <h3 class="section-title">Sessions</h3>
-                    <div class="sessions-list" id="sessions-list">
-                        <button class="session-btn" data-session="FP1">P1</button>
-                        <button class="session-btn" data-session="FP2">P2</button>
-                        <button class="session-btn" data-session="FP3">P3</button>
-                        <button class="session-btn" data-session="Qualifying">QUALY</button>
-                        <button class="session-btn active" data-session="Race">RACE</button>
-                    </div>
+                <div class="graph-container secondary-graph">
+                    <canvas id="brake-graph"></canvas>
+                </div>
+                <div class="graph-container secondary-graph">
+                    <canvas id="drs-graph"></canvas>
                 </div>
             </div>
+        </div>
 
-            <!-- Sidebar Close Button (Mobile) -->
-            <button class="sidebar-close" id="sidebar-close">✕</button>
-        </aside>
-
-        <!-- MAIN CONTENT -->
-        <main class="main-content">
-            <!-- Driver Selection Grid -->
+        <div class="sidebar-data-panel">
             <section class="driver-selection-section">
-                <h2 class="section-header">Select Drivers</h2>
+                <h2 class="section-header">Drivers</h2>
                 <div class="driver-grid" id="driver-grid">
-                    <!-- Populated by JS -->
-                </div>
-            </section>
-
-            <!-- Laps Display Section -->
-            <section class="laps-display-section" id="laps-display-section">
-                <h2 class="section-header">Lap Times</h2>
-                
-                <!-- Stint Selector -->
-                <div class="stint-selector" id="stint-selector">
-                    <!-- Populated by JS -->
-                </div>
-
-                <!-- Laps Grid -->
-                <div class="laps-grid" id="laps-grid">
-                    <!-- Populated by JS -->
-                </div>
-            </section>
-
-            <!-- Telemetry Graphs Section -->
-            <section class="graphs-section">
-                <h2 class="section-header">Telemetry Comparison</h2>
-
-                <!-- Primary Speed Graph (2/3 width) -->
-                <div class="graph-container primary">
-                    <h3 class="graph-title">Speed (km/h)</h3>
-                    <canvas id="speed-graph" class="graph-canvas"></canvas>
-                </div>
-
-                <!-- Secondary Graphs (1/2 size, side by side) -->
-                <div class="secondary-graphs">
-                    <div class="graph-container">
-                        <h3 class="graph-title">Throttle (%)</h3>
-                        <canvas id="throttle-graph" class="graph-canvas"></canvas>
                     </div>
+            </section>
 
-                    <div class="graph-container">
-                        <h3 class="graph-title">Brake (%)</h3>
-                        <canvas id="brake-graph" class="graph-canvas"></canvas>
+            <section class="lap-matrix-section" id="lap-matrix-section">
+                <h2 class="section-header">Laps Selection Matrix</h2>
+                <div class="stint-filter-bar" id="stint-filter-bar">
                     </div>
-                </div>
-
-                <!-- DRS Graph -->
-                <div class="graph-container">
-                    <h3 class="graph-title">DRS Status</h3>
-                    <canvas id="drs-graph" class="graph-canvas"></canvas>
-                </div>
+                <div class="lap-rectangles-matrix" id="lap-rectangles-matrix">
+                    </div>
             </section>
 
-            <!-- Stats Tables Section -->
-            <section class="stats-section">
-                <h2 class="section-header">Lap Statistics</h2>
-                
-                <!-- Lap Times Table -->
-                <div class="table-container">
-                    <h3 class="table-title">Lap Times</h3>
-                    <table class="stats-table" id="lap-times-table">
-                        <thead>
-                            <tr>
-                                <th>Driver</th>
-                                <th>Lap</th>
-                                <th>Lap Time</th>
-                                <th>Gap</th>
-                                <th>S1</th>
-                                <th>S2</th>
-                                <th>S3</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Populated by JS -->
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Sector Comparison Table -->
-                <div class="table-container">
-                    <h3 class="table-title">Sector Comparison</h3>
-                    <table class="stats-table" id="sector-comparison-table">
-                        <thead>
-                            <tr>
-                                <th>Sector</th>
-                                <th>Driver 1</th>
-                                <th>Driver 2</th>
-                                <th>Δ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Populated by JS -->
-                        </tbody>
-                    </table>
-                </div>
+            <section class="table-container">
+                <h2 class="section-header">Telemetry Stats</h2>
+                <table class="stats-table" id="lap-times-table">
+                    <thead>
+                        <tr>
+                            <th>Driver</th>
+                            <th>Lap</th>
+                            <th>Lap Time</th>
+                            <th>S1</th>
+                            <th>S2</th>
+                            <th>S3</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </section>
-        </main>
+        </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="data/mock-data.js"></script>
-    <script src="app.js"></script>
+    
+    <script>
+        class F1TelemetryHub {
+            constructor() {
+                this.currentYear = 2024;
+                this.currentRound = 1; 
+                this.currentSession = "Race";
+                this.selectedDrivers = [];
+                this.selectedLaps = {}; // Structure: { driverId: [lapNumbers] }
+                this.activeStintFilter = 'ALL';
+                this.charts = {};
+
+                this.init();
+            }
+
+            init() {
+                this.setupListeners();
+                this.loadRacesDropdown();
+                this.loadDriverGrid();
+                this.updateLapMatrix();
+                this.updateCharts();
+            }
+
+            setupListeners() {
+                document.getElementById('race-select').addEventListener('change', (e) => {
+                    this.currentRound = parseInt(e.target.value);
+                    this.updateLapMatrix();
+                    this.updateCharts();
+                    this.updateStatsTable();
+                });
+                document.getElementById('session-select').addEventListener('change', (e) => {
+                    this.currentSession = e.target.value;
+                    this.updateLapMatrix();
+                    this.updateCharts();
+                    this.updateStatsTable();
+                });
+            }
+
+            loadRacesDropdown() {
+                const races = getRacesForYear(this.currentYear);
+                const dropdown = document.getElementById('race-select');
+                dropdown.innerHTML = '';
+                
+                races.forEach(race => {
+                    const opt = document.createElement('option');
+                    opt.value = race.round;
+                    opt.textContent = `Rd ${race.round} - ${race.name}`;
+                    dropdown.appendChild(opt);
+                });
+            }
+
+            loadDriverGrid() {
+                const list = getDriversList();
+                const grid = document.getElementById('driver-grid');
+                grid.innerHTML = '';
+
+                list.forEach(driver => {
+                    const card = document.createElement('div');
+                    card.className = 'driver-card';
+                    card.dataset.id = driver.number;
+                    card.innerHTML = `
+                        <div class="driver-number">${driver.number}</div>
+                        <div class="driver-name">${driver.name.split(' ')[1] || driver.name}</div>
+                    `;
+                    card.addEventListener('click', () => this.toggleDriver(driver.number.toString()));
+                    grid.appendChild(card);
+                });
+            }
+
+            toggleDriver(driverId) {
+                const idx = this.selectedDrivers.indexOf(driverId);
+                const card = document.querySelector(`.driver-card[data-id="${driverId}"]`);
+                
+                if (idx > -1) {
+                    this.selectedDrivers.splice(idx, 1);
+                    delete this.selectedLaps[driverId];
+                    card.classList.remove('selected');
+                } else {
+                    this.selectedDrivers.push(driverId);
+                    this.selectedLaps[driverId] = [];
+                    card.classList.add('selected');
+                }
+                this.updateLapMatrix();
+                this.updateCharts();
+                this.updateStatsTable();
+            }
+
+            updateLapMatrix() {
+                const matrix = document.getElementById('lap-rectangles-matrix');
+                const stintBar = document.getElementById('stint-filter-bar');
+                matrix.innerHTML = '';
+                stintBar.innerHTML = '';
+
+                if (this.selectedDrivers.length === 0) {
+                    matrix.innerHTML = '<div style="grid-column: span 10; font-size: 11px; color: var(--text-secondary);">Select a driver to load laps grid...</div>';
+                    return;
+                }
+
+                const primaryDriver = this.selectedDrivers[0];
+                const sessionData = getSessionData(this.currentYear, this.currentRound, this.currentSession);
+                if (!sessionData || !sessionData.drivers[primaryDriver]) return;
+
+                const laps = sessionData.drivers[primaryDriver].laps;
+
+                // Extract and render unique tyre stints
+                const stints = ['ALL', ...new Set(laps.map(l => l.tireCompound.toUpperCase()))];
+                stints.forEach(stint => {
+                    const btn = document.createElement('button');
+                    btn.className = `stint-btn ${this.activeStintFilter === stint ? 'active' : ''}`;
+                    btn.textContent = stint;
+                    btn.addEventListener('click', () => {
+                        this.activeStintFilter = stint;
+                        this.updateLapMatrix();
+                    });
+                    stintBar.appendChild(btn);
+                });
+
+                // Render laps matching stint filter into 10-wide configurations
+                laps.forEach(lap => {
+                    if (this.activeStintFilter !== 'ALL' && lap.tireCompound.toUpperCase() !== this.activeStintFilter) return;
+
+                    const box = document.createElement('div');
+                    const isSelected = this.selectedLaps[primaryDriver]?.includes(lap.lapNumber);
+                    box.className = `lap-clickable-box ${isSelected ? 'active' : ''}`;
+                    
+                    box.innerHTML = `
+                        <span class="l-num">L${lap.lapNumber}</span>
+                        <span class="l-time">${parseFloat(lap.lapTime).toFixed(1)}s</span>
+                    `;
+
+                    box.addEventListener('click', () => {
+                        this.toggleLapSelection(primaryDriver, lap.lapNumber);
+                        box.classList.toggle('active');
+                    });
+
+                    matrix.appendChild(box);
+                });
+            }
+
+            toggleLapSelection(driverId, lapNumber) {
+                if (!this.selectedLaps[driverId]) this.selectedLaps[driverId] = [];
+                const idx = this.selectedLaps[driverId].indexOf(lapNumber);
+                
+                if (idx > -1) {
+                    this.selectedLaps[driverId].splice(idx, 1);
+                } else {
+                    this.selectedLaps[driverId].push(lapNumber);
+                }
+                this.updateCharts();
+                this.updateStatsTable();
+            }
+
+            getChartThemes() {
+                return { text: '#e0e0e6', grid: '#2d2d3d' };
+            }
+
+            updateCharts() {
+                this.renderLineChart('speed-graph', 'speed', 0, 350);
+                this.renderLineChart('throttle-graph', 'throttle', 0, 100);
+                this.renderLineChart('brake-graph', 'brake', 0, 100);
+                this.renderLineChart('drs-graph', 'drs', 0, 1);
+            }
+
+            renderLineChart(elementId, metric, minVal, maxVal) {
+                const ctx = document.getElementById(elementId);
+                if (!ctx) return;
+
+                if (this.charts[elementId]) this.charts[elementId].destroy();
+
+                const themes = this.getChartThemes();
+                const datasets = [];
+
+                this.selectedDrivers.forEach(driverId => {
+                    const sessionData = getSessionData(this.currentYear, this.currentRound, this.currentSession);
+                    if (!sessionData || !sessionData.drivers[driverId]) return;
+
+                    const activeLaps = this.selectedLaps[driverId] || [];
+                    activeLaps.forEach(lapNum => {
+                        const lap = sessionData.drivers[driverId].laps.find(l => l.lapNumber === lapNum);
+                        if (!lap) return;
+
+                        const points = lap.telemetry.map(p => p[metric]);
+                        datasets.push({
+                            label: `${drivers[driverId].name} L${lapNum}`,
+                            data: points,
+                            borderColor: drivers[driverId].color || '#dc0000',
+                            borderWidth: 2,
+                            tension: 0.1,
+                            pointRadius: 0
+                        });
+                    });
+                });
+
+                // Generate basic labels along track distance (0% to 100%)
+                const labels = Array.from({ length: 200 }, (_, i) => Math.round((i / 200) * 100) + '%');
+
+                this.charts[elementId] = new Chart(ctx, {
+                    type: 'line',
+                    data: { labels: labels, datasets: datasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: elementId === 'speed-graph', labels: { color: themes.text, font: { size: 10 } } } },
+                        scales: {
+                            y: { min: minVal, max: maxVal, ticks: { color: themes.text, font: { size: 9 } }, grid: { color: themes.grid } },
+                            x: { ticks: { color: themes.text, maxTicksLimit: 8, font: { size: 9 } }, grid: { color: themes.grid } }
+                        }
+                    }
+                });
+            }
+
+            updateStatsTable() {
+                const tbody = document.querySelector('#lap-times-table tbody');
+                tbody.innerHTML = '';
+
+                this.selectedDrivers.forEach(driverId => {
+                    const sessionData = getSessionData(this.currentYear, this.currentRound, this.currentSession);
+                    if (!sessionData || !sessionData.drivers[driverId]) return;
+
+                    const activeLaps = this.selectedLaps[driverId] || [];
+                    activeLaps.forEach(lapNum => {
+                        const lap = sessionData.drivers[driverId].laps.find(l => l.lapNumber === lapNum);
+                        if (!lap) return;
+
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td><b>${drivers[driverId].name.split(' ')[1]}</b></td>
+                            <td>${lap.lapNumber}</td>
+                            <td>${lap.lapTime}s</td>
+                            <td>${lap.sector1}s</td>
+                            <td>${lap.sector2}s</td>
+                            <td>${lap.sector3}s</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            window.telemetryApp = new F1TelemetryHub();
+        });
+    </script>
 </body>
 </html>
