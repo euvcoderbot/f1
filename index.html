@@ -64,9 +64,9 @@
 
                     <div class="dropdown-group">
                         <label for="race-select">Race</label>
-                        <select id="race-select" class="dropdown">
-                            <option value="">Loading...</option>
-                        </select>
+                        <div class="race-list" id="race-list">
+                            <!-- Populated by JS -->
+                        </div>
                     </div>
 
                     <div class="dropdown-group">
@@ -84,17 +84,6 @@
                 <!-- Divider -->
                 <div class="sidebar-divider"></div>
 
-                <!-- Race List Section -->
-                <div class="sidebar-section">
-                    <h3 class="section-title">Races</h3>
-                    <div class="race-list" id="race-list">
-                        <!-- Populated by JS -->
-                    </div>
-                </div>
-
-                <!-- Divider -->
-                <div class="sidebar-divider"></div>
-
                 <!-- Sessions Section -->
                 <div class="sidebar-section">
                     <h3 class="section-title">Sessions</h3>
@@ -104,22 +93,6 @@
                         <button class="session-btn" data-session="FP3">P3</button>
                         <button class="session-btn" data-session="Qualifying">QUALY</button>
                         <button class="session-btn active" data-session="Race">RACE</button>
-                    </div>
-                </div>
-
-                <!-- Divider -->
-                <div class="sidebar-divider"></div>
-
-                <!-- Laps Section -->
-                <div class="sidebar-section">
-                    <h3 class="section-title">Laps</h3>
-                    <div class="laps-filter">
-                        <button class="filter-btn active" data-filter="best">Best</button>
-                        <button class="filter-btn" data-filter="last5">Last 5</button>
-                        <button class="filter-btn" data-filter="all">All</button>
-                    </div>
-                    <div class="laps-list" id="laps-list">
-                        <!-- Populated by JS -->
                     </div>
                 </div>
             </div>
@@ -138,11 +111,18 @@
                 </div>
             </section>
 
-            <!-- Selected Drivers Box -->
-            <section class="selected-drivers-section">
-                <h2 class="section-header">Selected Drivers</h2>
-                <div class="selected-drivers-display" id="selected-drivers-display">
-                    <!-- Shows selected drivers -->
+            <!-- Laps Display Section -->
+            <section class="laps-display-section" id="laps-display-section">
+                <h2 class="section-header">Lap Times</h2>
+                
+                <!-- Stint Selector -->
+                <div class="stint-selector" id="stint-selector">
+                    <!-- Populated by JS -->
+                </div>
+
+                <!-- Laps Grid -->
+                <div class="laps-grid" id="laps-grid">
+                    <!-- Populated by JS -->
                 </div>
             </section>
 
@@ -150,22 +130,23 @@
             <section class="graphs-section">
                 <h2 class="section-header">Telemetry Comparison</h2>
 
-                <!-- Speed Graph -->
-                <div class="graph-container">
+                <!-- Primary Speed Graph (2/3 width) -->
+                <div class="graph-container primary">
                     <h3 class="graph-title">Speed (km/h)</h3>
                     <canvas id="speed-graph" class="graph-canvas"></canvas>
                 </div>
 
-                <!-- Throttle Graph -->
-                <div class="graph-container">
-                    <h3 class="graph-title">Throttle (%)</h3>
-                    <canvas id="throttle-graph" class="graph-canvas"></canvas>
-                </div>
+                <!-- Secondary Graphs (1/2 size, side by side) -->
+                <div class="secondary-graphs">
+                    <div class="graph-container">
+                        <h3 class="graph-title">Throttle (%)</h3>
+                        <canvas id="throttle-graph" class="graph-canvas"></canvas>
+                    </div>
 
-                <!-- Brake Graph -->
-                <div class="graph-container">
-                    <h3 class="graph-title">Brake (%)</h3>
-                    <canvas id="brake-graph" class="graph-canvas"></canvas>
+                    <div class="graph-container">
+                        <h3 class="graph-title">Brake (%)</h3>
+                        <canvas id="brake-graph" class="graph-canvas"></canvas>
+                    </div>
                 </div>
 
                 <!-- DRS Graph -->
